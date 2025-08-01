@@ -11,7 +11,7 @@ app.use(express.json({limit: '10mb'}));
 app.use('/events', eventRouter);
 app.use('/analytics',analyticsRouter)
 
-mongoose.connect(config.mongoUri).then(() => {
+mongoose.connect(process.env.MONGO_URI!).then(() => {
   console.log('MongoDB connected');
   app.listen(8080, () => console.log('Server running on port 8080'));
 });

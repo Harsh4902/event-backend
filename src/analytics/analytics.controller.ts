@@ -49,19 +49,26 @@ analyticsRouter.get('/retention', async (req: Request, res: Response) => {
 });
 
 // Handler for `/metrics`
-
 analyticsRouter.get('/metrics', async (req, res) => {
-  const { event, interval } = req.query;
+  const { event, interval = 'daily', startDate, endDate } = req.query;
 
-  if (!event) {
-    return res.status(400).json({ error: 'Missing required "event" parameter' });
+  if (!event || typeof event !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid "event"' });
+  }
+
+  if (interval !== 'daily' && interval !== 'weekly') {
+    return res.status(400).json({ error: 'Invalid interval: must be daily or weekly' });
   }
 
   try {
-    const metrics = await AnalyticsService.getEventMetrics(event as string, interval as string);
-    res.json(metrics);
+    const data = await AnalyticsService.getEventMetrics(
+      event,
+      interval,
+      { startDate : startDate as string, endDate : endDate as string}
+    );
+    res.json(data);
   } catch (err) {
-    console.error('Error in /metrics:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
