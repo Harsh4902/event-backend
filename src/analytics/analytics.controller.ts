@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { AnalyticsService } from './analytics.service';
 import { FunnelRequestDto } from './dto/funnel-request.dto';
+import { apiKeyAuth } from '../auth/auth.middleware';
+import { validateTenant } from '../middleware/tenant.middleware';
 
 export const analyticsRouter = Router();
+
+analyticsRouter.use(apiKeyAuth);
+analyticsRouter.use(validateTenant);
 
 // Handler for `/funnels`
 
