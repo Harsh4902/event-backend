@@ -1,0 +1,252 @@
+openapi: 3.0.0
+info:
+  title: Analytics API
+  description: API for user analytics including funnel, retention, and metrics tracking.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    FunnelStep:
+      type: object
+      required:
+        - event
+      properties:
+        event:
+          type: string
+          description: Name of the event in the funnel step
+    FunnelRequest:
+      type: object
+      required:
+        - orgId
+        - projectId
+        - steps
+      properties:
+        orgId:
+          type: string
+        projectId:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/FunnelStep'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+    FunnelResponse:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              step:
+                type: string
+              users:
+                type: integer
+              dropoffFromPrevious:
+                type: integer
+    EventIngest:
+      type: object
+      required: true
+        - orgId
+        - projectId
+        - userId
+        - event
+        - timestamp
+      properties:
+        orgId:
+          type: string
+        projectId:
+          type: string
+        userId:
+          type: string
+        event:
+          type: string
+        timestamp:
+          type: string
+        properties:
+          type: object
+        
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /events:
+    post:
+      summary: Ingest events asynchronously
+      tags: [Events]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: '#/components/schemas/EventIngest'
+      responses:
+        '201':
+          description: Events successfully queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Events queued successfully
+                  queued:
+                    type: integer
+        '400':
+          description: Invalid request (e.g., batch size too small or too large)
+        '500':
+          description: Internal server error while queuing
+
+  /analytics/funnels:
+    post:
+      summary: Compute funnel conversion
+      tags: [Analytics]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FunnelRequest'
+      responses:
+        '200':
+          description: Funnel result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FunnelResponse'
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+
+  /analytics/users/{id}/journey:
+    get:
+      summary: Get user journey
+      tags: [Analytics]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of events for a user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    event:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+                    properties:
+                      type: object
+        '500':
+          description: Server error
+
+  /analytics/retention:
+    get:
+      summary: Get cohort retention
+      tags: [Analytics]
+      parameters:
+        - in: query
+          name: cohort
+          schema:
+            type: string
+          required: false
+          description: Cohort event name (e.g., signup)
+        - in: query
+          name: days
+          schema:
+            type: integer
+          required: false
+          description: Number of days to track retention
+      responses:
+        '200':
+          description: Retention data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    day:
+                      type: integer
+                    users:
+                      type: array
+                      items:
+                        type: string
+                    count:
+                      type: integer
+        '500':
+          description: Server error
+
+  /analytics/metrics:
+    get:
+      summary: Get aggregated event metrics
+      tags: [Analytics]
+      parameters:
+        - in: query
+          name: event
+          schema:
+            type: string
+          required: true
+        - in: query
+          name: interval
+          schema:
+            type: string
+            enum: [daily, weekly]
+          required: true
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+          required: false
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+          required: false
+      responses:
+        '200':
+          description: Aggregated event metrics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    date:
+                      type: string
+                    count:
+                      type: integer
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
