@@ -3,6 +3,7 @@ import { FunnelRequestDto } from './dto/funnel-request.dto';
 import { FunnelResponseDto } from './dto/funnel-response.dto';
 import { startOfDay, differenceInDays } from 'date-fns';
 import { getCached, setCached } from '../utils/redis';
+import { logger } from '../utils/logger';
 
 function buildMatchFilter({ orgId, projectId, event, userId, startDate, endDate, userProperties }: any) {
   const match: any = {
@@ -28,9 +29,16 @@ export class AnalyticsService {
   static async computeFunnel(req: FunnelRequestDto): Promise<FunnelResponseDto> {
     const cacheKey = `funnel:${JSON.stringify(req)}`;
     const cached = await getCached<FunnelResponseDto>(cacheKey);
-    if (cached) return cached;
+
+    if (cached) {
+      logger.info('[Funnel] Cache hit');
+      return cached;
+    }
 
     const { orgId, projectId, steps, startDate, endDate } = req;
+
+    logger.info(`[Funnel] Start computing funnel for org=${orgId}, project=${projectId}`);
+    logger.debug(`[Funnel] Steps=${JSON.stringify(steps)}, startDate=${startDate}, endDate=${endDate}`);
 
     const match: any = {
       orgId,
@@ -41,6 +49,7 @@ export class AnalyticsService {
     if (startDate) match.timestamp = { ...match.timestamp, $gte: new Date(startDate) };
     if (endDate) match.timestamp = { ...match.timestamp, $lte: new Date(endDate) };
 
+    const start = Date.now();
     const events = await EventModel.aggregate([
       { $match: match },
       { $sort: { userId: 1, timestamp: 1 } },
@@ -51,8 +60,9 @@ export class AnalyticsService {
         }
       }
     ]);
+    logger.info(`[Funnel] Aggregation completed in ${Date.now() - start}ms`);
 
-    const stepResults = steps.map((step, idx) => ({
+    const stepResults = steps.map(step => ({
       step: step.event,
       users: 0
     }));
@@ -76,23 +86,34 @@ export class AnalyticsService {
     };
 
     await setCached(cacheKey, response, 300);
+    logger.info(`[Funnel] Funnel computed and cached`);
     return response;
   }
 
   static async getUserJourney(userId: string, filters = {}) {
+    logger.info(`[Journey] Fetching journey for user=${userId}`);
+    logger.debug(`[Journey] Filters: ${JSON.stringify(filters)}`);
+
     const match = buildMatchFilter({ userId, ...filters });
 
-    return await EventModel.find(match)
+    const start = Date.now();
+    const journey = await EventModel.find(match)
       .select('event timestamp properties')
       .sort({ timestamp: 1 })
       .lean();
+    logger.info(`[Journey] Retrieved ${journey.length} events in ${Date.now() - start}ms`);
+    return journey;
   }
 
   static async getRetentionData(cohortEvent: string, days: number) {
     const cacheKey = `retention:${cohortEvent}:${days}`;
     const cached = await getCached<any[]>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      logger.info('[Retention] Cache hit');
+      return cached;
+    }
 
+    logger.info(`[Retention] Calculating for event=${cohortEvent}, days=${days}`);
     const startDate = startOfDay(new Date());
     startDate.setDate(startDate.getDate() - days);
 
@@ -110,6 +131,7 @@ export class AnalyticsService {
         },
       },
     ]);
+    logger.info(`[Retention] Identified ${cohortEvents.length} users in cohort`);
 
     const retentionMap: { [key: string]: Set<string> } = {};
     for (let i = 0; i <= days; i++) retentionMap[i] = new Set();
@@ -120,12 +142,16 @@ export class AnalyticsService {
     }
 
     const userIds = Object.keys(userSignupMap);
-    if (userIds.length === 0) return [];
+    if (userIds.length === 0) {
+      logger.warn('[Retention] No users found in cohort');
+      return [];
+    }
 
     const allEvents = await EventModel.find({
       userId: { $in: userIds },
       timestamp: { $gte: startDate },
     }).lean();
+    logger.info(`[Retention] Scanned ${allEvents.length} events across cohort users`);
 
     for (const event of allEvents) {
       const signupDate = userSignupMap[event.userId];
@@ -145,18 +171,25 @@ export class AnalyticsService {
     }
 
     await setCached(cacheKey, retentionData, 300);
+    logger.info('[Retention] Retention data computed and cached');
     return retentionData;
   }
 
   static async getEventMetrics(eventName: string, interval: 'daily' | 'weekly', filters = {}) {
     const cacheKey = `metrics:${eventName}:${interval}:${JSON.stringify(filters)}`;
     const cached = await getCached<any[]>(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      logger.info('[Metrics] Cache hit');
+      return cached;
+    }
+
+    logger.info(`[Metrics] Computing metrics for event=${eventName}, interval=${interval}`);
+    logger.debug(`[Metrics] Filters: ${JSON.stringify(filters)}`);
 
     const match = buildMatchFilter({ event: eventName, ...filters });
-
     const groupBy = interval === 'daily' ? '%Y-%m-%d' : '%Y-%U';
 
+    const start = Date.now();
     const results = await EventModel.aggregate([
       { $match: match },
       {
@@ -174,8 +207,10 @@ export class AnalyticsService {
       },
       { $sort: { date: 1 } }
     ]);
+    logger.info(`[Metrics] Aggregation done in ${Date.now() - start}ms`);
 
     await setCached(cacheKey, results, 300);
+    logger.info('[Metrics] Metrics cached');
     return results;
   }
 }
