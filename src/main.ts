@@ -4,10 +4,12 @@ import mongoose from 'mongoose';
 import { eventRouter } from './events/event.controller';
 import { analyticsRouter } from './analytics/analytics.controller';
 import { config } from './config/configuration';
+import { apiKeyRateLimiter } from './middleware/rateLimiter';
 
 dotenv.config();
 const app = express();
 app.use(express.json({limit: '10mb'}));
+app.use(apiKeyRateLimiter)
 app.use('/events', eventRouter);
 app.use('/analytics',analyticsRouter)
 
