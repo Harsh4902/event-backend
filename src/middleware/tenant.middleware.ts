@@ -17,18 +17,5 @@ export function validateTenant(req: Request, res: Response, next: NextFunction) 
     return res.status(400).json({ error: 'projectId mismatch' });
   }
 
-  // Auto-inject if missing
-  if (!body.orgId) {
-    logger.debug(`[TenantValidation] Injecting orgId from API key: ${orgId}`);
-    body.orgId = orgId;
-  }
-
-  if (!body.projectId) {
-    logger.debug(`[TenantValidation] Injecting projectId from API key: ${projectId}`);
-    body.projectId = projectId;
-  }
-
-  req.body = body;
-
   next();
 }

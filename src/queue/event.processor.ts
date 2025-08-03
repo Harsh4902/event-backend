@@ -17,6 +17,6 @@ new Worker('eventQueue', async (job: Job) => {
       jobId: job.id,
       data: job.data
     });
-    throw error; // Let BullMQ handle retries or move to failed jobs
+    throw error;
   }
 }, { connection });

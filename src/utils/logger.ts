@@ -1,4 +1,3 @@
-// src/utils/logger.ts
 const winston = require('winston');
 
 const { combine, timestamp, printf, colorize } = winston.format;
