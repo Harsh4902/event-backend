@@ -1,0 +1,208 @@
+{
+	"info": {
+		"_postman_id": "f9760308-587e-4e16-8829-f9ae2758d570",
+		"name": "EventBackend",
+		"description": "version=1.0",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25673983"
+	},
+	"item": [
+		{
+			"name": "event",
+			"item": [
+				{
+					"name": "Add event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"events\": [\n    {\n      \"orgId\": \"org1\",\n      \"projectId\": \"proj1\",\n      \"userId\": \"user123\",\n      \"event\": \"signup\",\n      \"timestamp\": \"2025-07-30T12:00:00Z\",\n      \"properties\": {\n        \"plan\": \"pro\"\n      }\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/events",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"events"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "analytics",
+			"item": [
+				{
+					"name": "funnel",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "abc123",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orgId\": \"org1\",\n  \"projectId\": \"proj1\",\n  \"steps\": [\n    { \"event\": \"signup\" },\n    { \"event\": \"login\"},\n    { \"event\" : \"purchase\"}\n  ]\n}\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/analytics/funnels",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"analytics",
+								"funnels"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "user_journey",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "abc123",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8080/analytics/users/user1/journey",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"analytics",
+								"users",
+								"user1",
+								"journey"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "retention",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "abc123",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orgId\" : \"org1\",\n    \"projectId\" : \"proj1\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/analytics/retention?cohort=signup&days=7",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"analytics",
+								"retention"
+							],
+							"query": [
+								{
+									"key": "cohort",
+									"value": "signup"
+								},
+								{
+									"key": "days",
+									"value": "7"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "metrics",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "abc123",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orgId\" : \"org1\",\n    \"projectId\" : \"proj1\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/analytics/metrics?event=signup&interval=daily",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"analytics",
+								"metrics"
+							],
+							"query": [
+								{
+									"key": "event",
+									"value": "signup"
+								},
+								{
+									"key": "interval",
+									"value": "daily"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

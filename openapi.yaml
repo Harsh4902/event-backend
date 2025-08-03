@@ -61,25 +61,32 @@ components:
                 type: integer
     EventIngest:
       type: object
-      required: true
-        - orgId
-        - projectId
-        - userId
-        - event
-        - timestamp
+      required:
+        - events
       properties:
-        orgId:
-          type: string
-        projectId:
-          type: string
-        userId:
-          type: string
-        event:
-          type: string
-        timestamp:
-          type: string
-        properties:
-          type: object
+        events:
+          type: array
+          items:
+            type: object
+            required: 
+              - orgId
+              - projectId
+              - userId
+              - event
+              - timestamp
+            properties:
+              orgId:
+                type: string
+              projectId:
+                type: string
+              userId:
+                type: string
+              event:
+                type: string
+              timestamp:
+                type: string
+              properties:
+                type: object
         
 security:
   - ApiKeyAuth: []
